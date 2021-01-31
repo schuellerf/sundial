@@ -138,12 +138,13 @@ class Sundial(inkex.Effect):
             months = {} #full day of each 1st in a month
             hours = {} # one hour over the whole year
 
-
-            self.new_circle(parent, self.offset_x,self.offset_y, color)
             x = self.offset_x
             y = self.offset_y
             l = self.length
             d = l * math.sin(math.pi / 4) # length l in 45° angle
+
+            self.new_circle(parent, x, y, color)
+
             self.new_path(parent, [(x     , y),
                                    (x, y + l)], color)
 
@@ -164,6 +165,7 @@ class Sundial(inkex.Effect):
             with open(self.options.csvfile) as csvfile:
                 reader = csv.DictReader(csvfile)
                 date_col = reader.fieldnames[0]
+                self.new_text(parent, None, x+2, y, f"{date_col}", anchor='start')
                 year = None
                 for row in reader:
                     for h in range(self.day_start, self.day_end + 1):

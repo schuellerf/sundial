@@ -21,24 +21,9 @@ class Sundial(inkex.Effect):
                                 help="Sundial input data (CSV)")
                 self.arg_parser.add_argument("--length", type=int,
                                 action="store",
-                                default=30,
+                                default=27,
                                 dest="length", 
                                 help="Sundial shadow stick length")
-                self.arg_parser.add_argument("--offset_x", type=int,
-                                action="store",
-                                default=165,
-                                dest="offset_x", 
-                                help="X-Offset of the stick on the paper")
-                self.arg_parser.add_argument("--offset_y", type=int,
-                                action="store",
-                                default=150,
-                                dest="offset_y", 
-                                help="Y-Offset of the stick on the paper")
-                self.arg_parser.add_argument("--bounding_box", type=int,
-                                action="store",
-                                default=140,
-                                dest="bounding_box", 
-                                help="Bounding box size to cut the paths")
                 self.arg_parser.add_argument("--day_start", type=int,
                                 action="store",
                                 default=6,
@@ -49,27 +34,50 @@ class Sundial(inkex.Effect):
                                 default=18,
                                 dest="day_end", 
                                 help="Hour of the day to end")
+                self.arg_parser.add_argument("--offset_x", type=int,
+                                action="store",
+                                default=150,
+                                dest="offset_x", 
+                                help="X-Offset of the stick on the paper")
+                self.arg_parser.add_argument("--offset_y", type=int,
+                                action="store",
+                                default=150,
+                                dest="offset_y", 
+                                help="Y-Offset of the stick on the paper")
+                self.arg_parser.add_argument("--bounding_box", type=int,
+                                action="store",
+                                default=130,
+                                dest="bounding_box", 
+                                help="Bounding box size to cut the paths")
 
                 self.txt_i = 1
-        def new_path(self, parent, path, color, name=None, close= False):
+
+        def new_path(self, parent, path, color, name=None, close= False, dashed=False):
             if name is None:
                 name = name = f"path{self.txt_i}"
                 self.txt_i += 1
 
             path_str = " ".join([f"{x},{y}" for x,y in path])
-            style   = str(inkex.Style({
+            style   = {
                     'stroke'        : color,
                     'stroke-width': inkex.units.convert_unit('1px', 'mm'),
                      'fill'          : 'none',
                      'stroke-linejoin':'round'
-                   }))
+                   }
+
+            if dashed:
+                style['stroke-miterlimit'] = 4
+                style['stroke-dasharray'] = "1.58749792,1.58749792"
+                style['stroke-dashoffset'] = 0
+
+            style_str   = str(inkex.Style(style))
 
             if close:
                 close_str = ' z'
             else:
                 close_str = ''
 
-            attribs = {'style' : style,
+            attribs = {'style' : style_str,
                     inkex.addNS('label','inkscape') : name,
                     'stroke-linecap': 'round',
                     'd' : f'M {path_str}{close_str}'}
@@ -142,30 +150,47 @@ class Sundial(inkex.Effect):
             y = self.offset_y
             l = self.length
             d = l * math.sin(math.pi / 4) # length l in 45° angle
-
-            self.new_circle(parent, x, y, color)
+            y_15 = l * math.sin(math.pi / 12) # length l in 15° angle
+            x_15 = l * math.cos(math.pi / 12) # length l in 15° angle
+            hgt = math.sqrt(3*math.pow(d,2))
 
             self.new_path(parent, [(x     , y),
-                                   (x, y + l)], color)
+                                   (x, y + l)], color='#909090', name="Reference length")
+            self.new_text(parent, None, x + 1, y + l, f"Stick height reference", anchor='start')
 
-            self.new_text(parent, None, x + 3, y + l, f"Shadow stick length", anchor='start')
+            # Cut instructions:
+            self.new_path(parent, [(x + d, y + d),
+                                   (x    , y)], color, close=False, name="Places of triangle 1")
+
+            self.new_path(parent, [(x    , y),
+                                   (x + d, y - d)], color, close=False, dashed=True, name="Places of triangle 2")
 
             self.new_path(parent, [(x + d, y + d),
-                                   (x    , y),
-                                   (x + d, y - d)], color, close=False)
+                                   (x + d , y - d),
+                                   (x + d + hgt, y )], color)
 
-            #self.new_path(parent, [(x + d, y + d),
-            #                       (x + 2 * d, y ),
-            #                       (x + d + l, y - d)], color, close=True)
+            self.new_path(parent, [(x + d + hgt, y),
+                                   (x + d, y + d)], color, close=False, dashed=True)
 
-            #self.new_path(parent, [(x + d + l, y - d),
-            #                       (x + d, y - d),
-            #                       (x + d, y - 2 * d)], color, close=True)
+            self.new_path(parent, [(x + d , y - d),
+                                   (x + d + x_15, y - d - y_15),
+                                   (x + d + hgt, y)], color, close=False, dashed=True)
+
+            self.new_text(parent, None, x + d + x_15 - 3, y - d - y_15 - 7, f"Cut on dashed lines,", anchor='end')
+            self.new_text(parent, None, x + d + x_15 - 3, y - d - y_15 - 4, f"Bend on solid lines,", anchor='end')
+            self.new_text(parent, None, x + d + x_15 - 3, y - d - y_15 - 1, f"tape to numbers", anchor='end')
+            self.new_text(parent, None, x + d/2, y - d/2 + 3, f"1", anchor='start')
+            self.new_text(parent, None, x + d + x_15/2, y - d - y_15 / 2 + 3, f"1", anchor='start')
+
+            self.new_text(parent, None, x + d/2, y - d/2 - 2, f"2", anchor='end')
+            self.new_text(parent, None, x + d + x_15 + y_15 / 2 - 1, y - d - y_15 + x_15/2, f"2", anchor='end')
+
+
 
             with open(self.options.csvfile) as csvfile:
                 reader = csv.DictReader(csvfile)
                 date_col = reader.fieldnames[0]
-                self.new_text(parent, None, x+2, y, f"{date_col}", anchor='start')
+                self.new_text(parent, None, x+1, y + l + 5, f"{date_col}", anchor='start')
                 year = None
                 for row in reader:
                     for h in range(self.day_start, self.day_end + 1):

@@ -10,6 +10,14 @@
   <param name="length" type="int" min="1" max="100" gui-text="Shadow stick height">27</param>
   <param name="day_start" type="int" min="1" max="11" gui-text="Hour of the day to start">6</param>
   <param name="day_end" type="int" min="13" max="24" gui-text="Hour of the day to end">18</param>
+  <param type="optiongroup" name="sundial_type" gui-text="Type of sundial" appearance="combo">
+    <item value="both">Include Both</item>
+    <item value="winter_to_summer_only">Winter to Summer only</item>
+    <item value="summer_to_winter_only">Summer to Winter only</item>
+  </param>
+
+  <param name="solstice_summer" type="string" max-length="5" gui-text="Day of the summer solstice MM-DD">06-21</param>
+  <param name="solstice_winter" type="string" max-length="5" gui-text="Day of the winter solstice MM-DD">12-21</param>
   <param name="offset_x" type="int" min="1" max="1000" gui-text="X-Offset of the stick on the paper">150</param>
   <param name="offset_y" type="int" min="1" max="1000" gui-text="Y-Offset of the stick on the paper">150</param>
   <param name="bounding_box" type="int" min="1" max="2000" gui-text="Bounding box size to cut the paths">130</param>

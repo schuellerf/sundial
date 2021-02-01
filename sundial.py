@@ -34,6 +34,22 @@ class Sundial(inkex.Effect):
                                 default=18,
                                 dest="day_end", 
                                 help="Hour of the day to end")
+                self.arg_parser.add_argument("--sundial_type", type=str,
+                                action="store",
+                                default="both",
+                                dest="sundial_type", 
+                                help="Print the whole year or only half values are: both, summer_to_winter_only, winter_to_summer_only")
+                self.arg_parser.add_argument("--solstice_summer", type=str,
+                                action="store",
+                                default="06-21",
+                                dest="solstice_summer", 
+                                help="Day of the summer solstice MM-DD")
+                self.arg_parser.add_argument("--solstice_winter", type=str,
+                                action="store",
+                                default="12-21",
+                                dest="solstice_winter", 
+                                help="Day of the winter solstice MM-DD")
+
                 self.arg_parser.add_argument("--offset_x", type=int,
                                 action="store",
                                 default=150,
@@ -136,6 +152,9 @@ class Sundial(inkex.Effect):
             self.length = self.options.length
             self.day_start = self.options.day_start
             self.day_end = self.options.day_end
+            self.sundial_type = self.options.sundial_type
+            self.solstice_summer = self.options.solstice_summer
+            self.solstice_winter = self.options.solstice_winter
             self.offset_x = self.options.offset_x
             self.offset_y = self.options.offset_y
             self.bounding_box = self.options.bounding_box
@@ -144,7 +163,13 @@ class Sundial(inkex.Effect):
             color = '#000000'
             direction = None
             months = {} #full day of each 1st in a month
-            hours = {} # one hour over the whole year
+
+            #time from 1st of Jan to summer solstice
+            hours_summer1 = {} # one hour over the whole year
+
+            #time from winter solstice to 31st of December
+            hours_summer2 = {} # one hour over the whole year
+            hours_winter = {} # one hour over the whole year
 
             x = self.offset_x
             y = self.offset_y
@@ -185,7 +210,8 @@ class Sundial(inkex.Effect):
             self.new_text(parent, None, x + d/2, y - d/2 - 2, f"2", anchor='end')
             self.new_text(parent, None, x + d + x_15 + y_15 / 2 - 1, y - d - y_15 + x_15/2, f"2", anchor='end')
 
-
+            summer_date = None
+            winter_date = None
 
             with open(self.options.csvfile) as csvfile:
                 reader = csv.DictReader(csvfile)
@@ -207,17 +233,29 @@ class Sundial(inkex.Effect):
 
                         date_txt = row[date_col]
 
-                        hrs = hours.get(h,[])
-                        hrs.append((x,y))
-                        hours[h] = hrs
 
                         date = datetime.datetime.strptime(date_txt, '%Y-%m-%d')
 
                         if year is None:
                             year = date.year
+                            sdate = self.solstice_summer.split("-")
+                            wdate = self.solstice_winter.split("-")
+                            summer_date = datetime.datetime(year, int(sdate[0]), int(sdate[1]))
+                            winter_date = datetime.datetime(year, int(wdate[0]), int(wdate[1]))
                         # only draw dates of one year
                         if year != date.year:
                             continue
+
+                        if date < summer_date:
+                            hours = hours_summer1
+                        elif date < winter_date and date > summer_date:
+                            hours = hours_winter
+                        elif date > winter_date:
+                            hours = hours_summer2
+
+                        hrs = hours.get(h,[])
+                        hrs.append((x,y))
+                        hours[h] = hrs
 
                         anchor = 'start'
                         if date.month < 4:
@@ -235,11 +273,15 @@ class Sundial(inkex.Effect):
 
 
             for m in months:
-                if m < 7:
+                if m > summer_date.month and m <= winter_date.month:
+                    if self.sundial_type == 'winter_to_summer_only':
+                        continue
                     color = '#000000'
                     anchor = 'end'
                     offset = -3
                 else:
+                    if self.sundial_type == 'summer_to_winter_only':
+                        continue
                     color = '#FF0000'
                     anchor = 'start'
                     offset = +3
@@ -250,10 +292,21 @@ class Sundial(inkex.Effect):
                 for p in months[m]:
                     self.new_circle(parent, p[0], p[1], color)
 
-            for h in hours:
-                self.new_path(parent, hours[h], '#FF0000', f"{h}h")
-                coord = hours[h][0]
-                self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
+            if self.sundial_type != 'summer_to_winter_only':
+                for h in hours_summer1:
+                    self.new_path(parent, hours_summer1[h], '#FF0000', f"{h}h")
+                    coord = hours_summer1[h][0]
+                    self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
+                for h in hours_summer2:
+                    self.new_path(parent, hours_summer2[h], '#FF0000', f"{h}h")
+                    coord = hours_summer2[h][0]
+
+            if self.sundial_type != 'winter_to_summer_only':
+                for h in hours_winter:
+                    self.new_path(parent, hours_winter[h], '#000000', f"{h}h")
+                    coord = hours_winter[h][-1]
+                    if self.sundial_type != 'both':
+                        self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
                 
 
 

@@ -189,7 +189,6 @@ class Sundial(inkex.Effect):
             self.offset_x = self.options.offset_x
             self.offset_y = self.options.offset_y
             self.bounding_box = self.options.bounding_box
-            self.box_mode = True
 
             parent = self.svg.get_current_layer()
             color = '#000000'
@@ -357,13 +356,10 @@ class Sundial(inkex.Effect):
             if self.sundial_type != 'summer_to_winter_only':
                 for h in hours_summer1:
                     self.new_path(parent, hours_summer1[h], '#FF0000', f"{h}h")
-                    coord = hours_summer1[h][0]
-                    if not h in hours_summer2:
-                        self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
+                    coord = hours_summer1[h][-1]
+                    self.new_text(parent, None, coord[0] + 3, coord[1], f"{h:02d}:00", anchor='start')
                 for h in hours_summer2:
                     self.new_path(parent, hours_summer2[h], '#FF0000', f"{h}h")
-                    coord = hours_summer2[h][0]
-                    self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
                     #connect both
                     if h in hours_summer1:
                         self.new_path(parent, [hours_summer2[h][-1],hours_summer1[h][0]], '#FF0000', f"{h}h")
@@ -371,9 +367,9 @@ class Sundial(inkex.Effect):
             if self.sundial_type != 'winter_to_summer_only':
                 for h in hours_winter:
                     self.new_path(parent, hours_winter[h], '#000000', f"{h}h")
-                    coord = hours_winter[h][-1]
+                    coord = hours_winter[h][0]
                     if self.sundial_type != 'both':
-                        self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
+                        self.new_text(parent, None, coord[0] + 3, coord[1], f"{h:02d}:00", anchor='start')
                 
 
 

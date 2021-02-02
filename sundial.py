@@ -24,6 +24,11 @@ class Sundial(inkex.Effect):
                                 default=27,
                                 dest="length", 
                                 help="Sundial shadow stick length")
+                self.arg_parser.add_argument("--box_mode", type=str,
+                                action="store",
+                                default="false",
+                                dest="box_mode", 
+                                help="Generate the more advanced 'Box-Mode'")
                 self.arg_parser.add_argument("--day_start", type=int,
                                 action="store",
                                 default=6,
@@ -175,6 +180,7 @@ class Sundial(inkex.Effect):
 
         def effect(self):
             self.length = self.options.length
+            self.box_mode = True if self.options.box_mode == 'true' else False
             self.day_start = self.options.day_start
             self.day_end = self.options.day_end
             self.sundial_type = self.options.sundial_type
@@ -236,19 +242,27 @@ class Sundial(inkex.Effect):
             self.new_text(parent, None, x + d/2, y - d/2 - 2, f"2", anchor='end')
             self.new_text(parent, None, x + d + x_15 + y_15 / 2 - 1, y - d - y_15 + x_15/2, f"2", anchor='end')
 
+        
             if self.box_mode:
                 self.new_path(parent, [(x + d + x_15 + y_15, y - self.bounding_box + l),
                                        (x - self.bounding_box + l, y - self.bounding_box + l),
                                        (x - self.bounding_box + l, y + self.bounding_box - l),
                                        (x + d + x_15 + y_15, y + self.bounding_box - l)], color, close=False)
                 self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
-                                       (x - self.bounding_box - l, y - self.bounding_box + l)], color, close=False, dashed=True)
+                                       (x - self.bounding_box, y - self.bounding_box + l)], color, close=False, dashed=True)
+                self.new_text(parent, None, x - self.bounding_box, y - self.bounding_box + l + 5, f"3", anchor='start')
+
                 self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
-                                       (x - self.bounding_box - l, y + self.bounding_box - l)], color, close=False, dashed=True)
+                                       (x - self.bounding_box, y + self.bounding_box - l)], color, close=False, dashed=True)
+                self.new_text(parent, None, x - self.bounding_box, y + self.bounding_box - l - 2, f"4", anchor='start')
+
                 self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
-                                       (x - self.bounding_box + l, y - self.bounding_box - l)], color, close=False, dashed=True)
+                                       (x - self.bounding_box + l, y - self.bounding_box)], color, close=False, dashed=True)
+                self.new_text(parent, None, x - self.bounding_box + l + 2, y - self.bounding_box + 3, f"3", anchor='start')
+
                 self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
-                                       (x - self.bounding_box + l, y + self.bounding_box + l)], color, close=False, dashed=True)
+                                       (x - self.bounding_box + l, y + self.bounding_box)], color, close=False, dashed=True)
+                self.new_text(parent, None, x - self.bounding_box + l + 2, y + self.bounding_box, f"4", anchor='start')
 
 
             summer_date = None
@@ -267,6 +281,8 @@ class Sundial(inkex.Effect):
                         except ValueError:
                             continue
                         x,y = self.map_coords(self.length, el_csv, az_csv)
+                        planar_x, planar_y = self.map_coords(self.length, el_csv, az_csv, box_mode = False)
+
                         if abs(x-self.offset_x) > self.bounding_box:
                             continue
                         if abs(y-self.offset_y) > self.bounding_box:
@@ -304,13 +320,18 @@ class Sundial(inkex.Effect):
                         if date.month >= 7 and date.month <= 9:
                             anchor = 'end'
 
-                        if date.day == 1:
+                        # SMELL skip drawing month lines on box sides
+                        # adding a point on the box edge would be needed
+                        
+                        if date.day == 1 and (x == planar_x) and (y == planar_y):
+
                             #self.new_text(parent, None, x,y, date_txt, anchor)
                             #self.new_circle(parent, x,y, color)
-
                             m = months.get(date.month,[])
                             m.append((x,y))
                             months[date.month] = m
+                            
+
 
 
             for m in months:
@@ -337,10 +358,15 @@ class Sundial(inkex.Effect):
                 for h in hours_summer1:
                     self.new_path(parent, hours_summer1[h], '#FF0000', f"{h}h")
                     coord = hours_summer1[h][0]
-                    self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
+                    if not h in hours_summer2:
+                        self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
                 for h in hours_summer2:
                     self.new_path(parent, hours_summer2[h], '#FF0000', f"{h}h")
                     coord = hours_summer2[h][0]
+                    self.new_text(parent, None, coord[0] - 3, coord[1]-3, f"{h:02d}:00", anchor='end')
+                    #connect both
+                    if h in hours_summer1:
+                        self.new_path(parent, [hours_summer2[h][-1],hours_summer1[h][0]], '#FF0000', f"{h}h")
 
             if self.sundial_type != 'winter_to_summer_only':
                 for h in hours_winter:

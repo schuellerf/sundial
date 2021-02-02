@@ -140,12 +140,37 @@ class Sundial(inkex.Effect):
             line = etree.SubElement(parent, inkex.addNS('text','svg'), attribs)
             line.text = text
 
-        def map_coords(self, length, el, az):
+        def map_coords(self, length, el, az, box_mode = None):
+            # on the flat surface
             el_rad = (el / 180.0) * math.pi
             az_rad = (az / 180.0) * math.pi
             d = length / math.tan(el_rad)
             x = math.cos(az_rad) * d + self.offset_x
             y = math.sin(az_rad) * d + self.offset_y
+            if box_mode is None:
+                box_mode = self.box_mode
+
+            if box_mode:
+                flat_size = self.bounding_box - self.length
+                if y < (self.offset_y - flat_size):
+                    x_out = (1/math.tan(az_rad)) * flat_size
+                    d2 = math.sqrt(math.pow(x_out,2) + math.pow(flat_size,2))
+                    y_out = length - math.tan(el_rad) * d2
+                    y = self.offset_y - flat_size - y_out
+                    x = self.offset_x - x_out
+                if x < self.offset_x - flat_size:
+                    y_out = math.tan(az_rad) * flat_size
+                    d2 = math.sqrt(math.pow(y_out,2) + math.pow(flat_size,2))
+                    x_out = length - math.tan(el_rad) * d2
+                    y = self.offset_y - y_out
+                    x = self.offset_x - flat_size - x_out
+                if y > (self.offset_y + flat_size):
+                    x_out = (1/math.tan(az_rad)) * flat_size
+                    d2 = math.sqrt(math.pow(x_out,2) + math.pow(flat_size,2))
+                    y_out = length - math.tan(el_rad) * d2
+                    y = self.offset_y + flat_size + y_out
+                    x = self.offset_x + x_out
+                    
             return (x,y)
 
         def effect(self):
@@ -158,6 +183,7 @@ class Sundial(inkex.Effect):
             self.offset_x = self.options.offset_x
             self.offset_y = self.options.offset_y
             self.bounding_box = self.options.bounding_box
+            self.box_mode = True
 
             parent = self.svg.get_current_layer()
             color = '#000000'
@@ -209,6 +235,21 @@ class Sundial(inkex.Effect):
 
             self.new_text(parent, None, x + d/2, y - d/2 - 2, f"2", anchor='end')
             self.new_text(parent, None, x + d + x_15 + y_15 / 2 - 1, y - d - y_15 + x_15/2, f"2", anchor='end')
+
+            if self.box_mode:
+                self.new_path(parent, [(x + d + x_15 + y_15, y - self.bounding_box + l),
+                                       (x - self.bounding_box + l, y - self.bounding_box + l),
+                                       (x - self.bounding_box + l, y + self.bounding_box - l),
+                                       (x + d + x_15 + y_15, y + self.bounding_box - l)], color, close=False)
+                self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
+                                       (x - self.bounding_box - l, y - self.bounding_box + l)], color, close=False, dashed=True)
+                self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
+                                       (x - self.bounding_box - l, y + self.bounding_box - l)], color, close=False, dashed=True)
+                self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
+                                       (x - self.bounding_box + l, y - self.bounding_box - l)], color, close=False, dashed=True)
+                self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
+                                       (x - self.bounding_box + l, y + self.bounding_box + l)], color, close=False, dashed=True)
+
 
             summer_date = None
             winter_date = None

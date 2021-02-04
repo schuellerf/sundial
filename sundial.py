@@ -128,20 +128,28 @@ class Sundial(inkex.Effect):
 
             line = etree.SubElement(parent, inkex.addNS('ellipse','svg'), attribs )
 
-        def new_text(self, parent, name, x,y, text, anchor="start"):
+        def new_text(self, parent, name, x,y, text, anchor="start", rotate=None, fontsize=None):
+            if not fontsize:
+                # just some estimation
+                fontsize = self.length / 10
+
             style   = str(inkex.Style({
-                    'font-size'        : '3px',
-                    'font-family': 'sans-serif',
+                    'font-size'    : str(fontsize),
+                    'font-family'  : 'sans-serif',
                      'stroke-width':0.2,
                    }))
             if name is None:
                 name = f"text{self.txt_i}"
                 self.txt_i += 1
             attribs = { 'style' : style,
-                        'x': str(x),
-                        'y': str(y),
                         'text-anchor': anchor,
                         'id': name }
+            if rotate:
+                attribs['transform'] = f"translate({x},{y}) rotate({rotate})"
+            else:
+                attribs['x'] = str(x)
+                attribs['y'] = str(y)
+
             line = etree.SubElement(parent, inkex.addNS('text','svg'), attribs)
             line.text = text
 
@@ -247,6 +255,8 @@ class Sundial(inkex.Effect):
                                        (x - self.bounding_box + l, y - self.bounding_box + l),
                                        (x - self.bounding_box + l, y + self.bounding_box - l),
                                        (x + d + x_15 + y_15, y + self.bounding_box - l)], color, close=False)
+                self.new_text(parent, None, x + d + x_15 + y_15, y - self.bounding_box + l + 2, f"https://github.com/schuellerf/sundial", anchor='end', rotate=-90)
+
                 self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
                                        (x - self.bounding_box, y - self.bounding_box + l)], color, close=False, dashed=True)
                 self.new_text(parent, None, x - self.bounding_box, y - self.bounding_box + l + 5, f"3", anchor='start')
@@ -270,8 +280,11 @@ class Sundial(inkex.Effect):
             with open(self.options.csvfile) as csvfile:
                 reader = csv.DictReader(csvfile)
                 date_col = reader.fieldnames[0]
-                self.new_text(parent, None, x+1, y + l + 5, f"{date_col}", anchor='start')
                 year = None
+
+                gps_coords = date_col.replace("coo: ","")
+                # SMELL: (self.length / 15) is just an esimation of the scaled distance to the line to print on
+                self.new_text(parent, None, x + d + (self.length / 15), y + d - (self.length / 10), f"{gps_coords}", anchor='start', rotate=-30)
                 for row in reader:
                     for h in range(self.day_start, self.day_end + 1):
                         try:

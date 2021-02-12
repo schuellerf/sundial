@@ -416,10 +416,14 @@ class Sundial(inkex.Effect):
                     self.new_circle(parent, p[0], p[1], color)
 
             if self.sundial_type != 'summer_to_winter_only':
-                color = '#FF0000'
                 for h in hours_summer1:
+                    if h.endswith("00:00"):
+                        color = '#FF0000'
+                    else:
+                        color = '#FFBEBE'
                     self.new_path(parent, hours_summer1[h], color, f"{h}h")
 
+                    # only label full hours
                     if not h.endswith("00:00"):
                         continue
 
@@ -436,15 +440,26 @@ class Sundial(inkex.Effect):
                     self.new_text(parent, None, coord[0] - txt_x_gap, coord[1], f"{h}", anchor='end')
 
                 for h in hours_summer2:
+                    if h.endswith("00:00"):
+                        color = '#FF0000'
+                    else:
+                        color = '#FFBEBE'
+
                     self.new_path(parent, hours_summer2[h], color, f"{h}")
                     #connect both
                     if h in hours_summer1:
                         self.new_path(parent, [hours_summer2[h][-1],hours_summer1[h][0]], color, f"{h}")
 
             if self.sundial_type != 'winter_to_summer_only':
-                color = '#000000'
                 for h in hours_winter:
+                    if h.endswith("00:00"):
+                        color = '#000000'
+                    else:
+                        color = '#C6C6C6'
+
                     self.new_path(parent, hours_winter[h], color, f"{h}")
+
+                    # only label full hours
                     if not h.endswith("00:00"):
                         continue
                     if self.sundial_type != 'both':

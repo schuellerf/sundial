@@ -16,3 +16,5 @@ Finally provide the CSV to the extention:
 
 <img src="inkscape_example.png" alt="Use the extension" title="Use the extension" width="20%" />
 
+Sometimes the times and month names are not places perfectly, please do this manually before printing.
+

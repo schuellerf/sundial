@@ -8,7 +8,7 @@
   <param name="description" type="description">You have to download the "Annual sun path" CSV file your self from https://www.sunearthtools.com/dp/tools/pos_sun.php</param>
   <param type="path" name="csvfile" gui-text="Sundial data" mode="file" filetypes="csv"/>
   <param name="length" type="int" min="1" max="100" gui-text="Shadow stick height">29</param>
-  <param name="box_mode" type="bool" gui-text="Generate the more advanced 'Box-Mode'">0</param>
+  <param name="box_mode" type="bool" gui-text="Generate the more advanced 'Box-Mode'">true</param>
   <param name="day_start" type="int" min="1" max="11" gui-text="Hour of the day to start">6</param>
   <param name="day_end" type="int" min="13" max="24" gui-text="Hour of the day to end">18</param>
   <param type="optiongroup" name="sundial_type" gui-text="Type of sundial" appearance="combo">

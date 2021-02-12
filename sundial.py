@@ -279,7 +279,15 @@ class Sundial(inkex.Effect):
 
                 self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
                                        (x - self.bounding_box + l, y + self.bounding_box)], color, close=False, dashed=True)
-                self.new_text(parent, None, x - self.bounding_box + l + 2, y + self.bounding_box, f"4", anchor='start')
+                self.new_text(parent, None, x - self.bounding_box + l + txt_x_gap, y + self.bounding_box - txt_y_gap, f"4", anchor='start')
+
+                # Box outer border
+                self.new_path(parent, [(x_right_end, y - self.bounding_box),
+                                       (x - self.bounding_box + l, y - self.bounding_box)], color, close=False, dashed=True)
+                self.new_path(parent, [(x - self.bounding_box, y - self.bounding_box + l),
+                                       (x - self.bounding_box, y + self.bounding_box - l)], color, close=False, dashed=True)
+                self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box),
+                                       (x_right_end, y + self.bounding_box)], color, close=False, dashed=True)
 
 
             summer_date = None

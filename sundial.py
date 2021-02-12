@@ -104,7 +104,7 @@ class Sundial(inkex.Effect):
                     'd' : f'M {path_str}{close_str}'}
 
             line = etree.SubElement(parent, inkex.addNS('path','svg'), attribs )
-        def new_circle(self, parent, x,y, color=None, name=None):
+        def new_circle(self, parent, x,y, color=None, name=None, fill=True):
             if color is None:
                 color = '#000000'
 
@@ -112,19 +112,26 @@ class Sundial(inkex.Effect):
                 name = name = f"circle{self.txt_i}"
                 self.txt_i += 1
 
-            style   = str(inkex.Style({
+            style   = {
                     'stroke'        : color,
-                    'fill'        : color,
-                     'stroke-width': '1px',
-                     'fill-opacity': '1'
-                   }))
+                     'stroke-width': '0.1px',
+                   }
 
-            attribs = {'style' : style,
+            if fill:
+                style['fill'] = color
+                style['fill-opacity'] = '1'
+            else:
+                style['fill'] = 'none'
+                style['fill-opacity'] = '1'
+
+            style_str   = str(inkex.Style(style))
+
+            attribs = {'style' : style_str,
                     'id' : name,
                     'cx': str(x),
                     'cy': str(y),
-                    'rx': '0.5',
-                    'ry': '0.5'}
+                    'rx': '1',
+                    'ry': '1'}
 
             line = etree.SubElement(parent, inkex.addNS('ellipse','svg'), attribs )
 
@@ -292,9 +299,14 @@ class Sundial(inkex.Effect):
 
             summer_date = None
             winter_date = None
+            date_re = re.compile(r"(?P<angle>[AE]) (?P<timestamp>(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}))")
 
             with open(self.options.csvfile) as csvfile:
-                reader = csv.DictReader(csvfile)
+                dialect = csv.Sniffer().sniff(csvfile.readline())
+                csvfile.seek(0)
+
+                reader = csv.DictReader(csvfile, dialect=dialect)
+                #example how do debug: inkex.utils.debug(reader.fieldnames)
                 date_col = reader.fieldnames[0]
                 year = None
 
@@ -302,10 +314,31 @@ class Sundial(inkex.Effect):
                 # 1.4 as an approximation as the text is tilted
                 self.new_text(parent, None, x + d + txt_x_gap/1.4, y + d - txt_y_gap/1.4, f"{gps_coords}", anchor='start', rotate=-30)
                 for row in reader:
-                    for h in range(self.day_start, self.day_end + 1):
+                    for col in reader.fieldnames:
+                        time_col = date_re.match(col)
+                        if not time_col:
+                            continue
+                        # only use Azimuth! Elevation is fetched later anyway
+                        if time_col.group("angle") != "A":
+                            continue
+
+                        if int(time_col.group("h")) < self.day_start or \
+                           int(time_col.group("h")) > self.day_end:
+                            continue
+                        if int(time_col.group("h")) == self.day_end and \
+                           (int(time_col.group("m")) != 0 or \
+                            int(time_col.group("s")) != 0):
+                            continue
+
+                        timestamp = time_col.group("timestamp")
+                        
+                    #for h in range(self.day_start, self.day_end + 1):
                         try:
-                            az_csv = float(row[f"A {h:02d}:00:00"])
-                            el_csv = float(row[f"E {h:02d}:00:00"])
+                            az_csv = float(row[f"A {timestamp}"])
+                            el_csv = float(row[f"E {timestamp}"])
+
+                            if el_csv == 0 or az_csv == 0:
+                                raise ValueError()
                         except ValueError:
                             continue
                         x,y = self.map_coords(self.length, el_csv, az_csv)
@@ -338,9 +371,9 @@ class Sundial(inkex.Effect):
                         elif date > winter_date:
                             hours = hours_summer2
 
-                        hrs = hours.get(h,[])
+                        hrs = hours.get(timestamp,[])
                         hrs.append((x,y))
-                        hours[h] = hrs
+                        hours[timestamp] = hrs
 
                         anchor = 'start'
                         if date.month < 4:
@@ -383,22 +416,50 @@ class Sundial(inkex.Effect):
                     self.new_circle(parent, p[0], p[1], color)
 
             if self.sundial_type != 'summer_to_winter_only':
+                color = '#FF0000'
                 for h in hours_summer1:
-                    self.new_path(parent, hours_summer1[h], '#FF0000', f"{h}h")
+                    self.new_path(parent, hours_summer1[h], color, f"{h}h")
+
+                    if not h.endswith("00:00"):
+                        continue
+
                     coord = hours_summer1[h][-1]
-                    self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h:02d}:00", anchor='start')
+                    self.new_circle(parent, coord[0], coord[1], color, fill=False)
+                    if coord[1] < self.offset_y:
+                        coord = (coord[0],coord[1] + txt_y_gap)
+                    self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h}", anchor='start')
+
+                    coord = hours_summer1[h][0]
+                    self.new_circle(parent, coord[0], coord[1], color, fill=False)
+                    if coord[1] < self.offset_y:
+                        coord = (coord[0],coord[1] + txt_y_gap)
+                    self.new_text(parent, None, coord[0] - txt_x_gap, coord[1], f"{h}", anchor='end')
+
                 for h in hours_summer2:
-                    self.new_path(parent, hours_summer2[h], '#FF0000', f"{h}h")
+                    self.new_path(parent, hours_summer2[h], color, f"{h}")
                     #connect both
                     if h in hours_summer1:
-                        self.new_path(parent, [hours_summer2[h][-1],hours_summer1[h][0]], '#FF0000', f"{h}h")
+                        self.new_path(parent, [hours_summer2[h][-1],hours_summer1[h][0]], color, f"{h}")
 
             if self.sundial_type != 'winter_to_summer_only':
+                color = '#000000'
                 for h in hours_winter:
-                    self.new_path(parent, hours_winter[h], '#000000', f"{h}h")
-                    coord = hours_winter[h][0]
+                    self.new_path(parent, hours_winter[h], color, f"{h}")
+                    if not h.endswith("00:00"):
+                        continue
                     if self.sundial_type != 'both':
-                        self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h:02d}:00", anchor='start')
+
+                        coord = hours_winter[h][0]
+                        self.new_circle(parent, coord[0], coord[1], color, fill=False)
+                        if coord[1] < self.offset_y:
+                            coord = (coord[0],coord[1] + txt_y_gap)
+                        self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h}", anchor='start')
+
+                        coord = hours_winter[h][-1]
+                        self.new_circle(parent, coord[0], coord[1], color, fill=False)
+                        if coord[1] < self.offset_y:
+                            coord = (coord[0],coord[1] + txt_y_gap)
+                        self.new_text(parent, None, coord[0] - txt_x_gap, coord[1], f"{h}", anchor='end')
                 
 
 

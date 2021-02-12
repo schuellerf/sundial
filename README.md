@@ -1,5 +1,5 @@
 # SUNDIAL
-This is an Inkscape extension.
+This is an [Inkscape](https://inkscape.org/) extension.
 
 To install it, download `sundial.py` and `sundial.inx`. Copy the files into the directory listed at `Edit > Preferences > System: User extensions`. After a restart of Inkscape, the new extension will be available.
 
@@ -16,5 +16,7 @@ Finally provide the CSV to the extention:
 
 <img src="inkscape_example.png" alt="Use the extension" title="Use the extension" width="20%" />
 
-Sometimes the times and month names are not places perfectly, please do this manually before printing.
+Possibly the times and month names are not placed perfectly, please do this manually before printing.
 
+If you like this project you can share it, contribute or support me: 
+https://www.paypal.com/donate?hosted_button_id=AJS9JLRM3LZW6

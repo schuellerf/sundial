@@ -216,6 +216,7 @@ class Sundial(inkex.Effect):
             color = '#000000'
             direction = None
             months = {} #full day of each 1st in a month
+            month_dots = {} #full day of each 1st in a month only full hours
 
             #time from 1st of Jan to summer solstice
             hours_summer1 = {} # one hour over the whole year
@@ -299,7 +300,7 @@ class Sundial(inkex.Effect):
 
             summer_date = None
             winter_date = None
-            date_re = re.compile(r"(?P<angle>[AE]) (?P<timestamp>(?P<h>\d{2}):(?P<m>\d{2}):(?P<s>\d{2}))")
+            date_re = re.compile(r"(?P<angle>[AE]) (?P<timestamp>(?P<timestamp_min_only>(?P<h>\d{2}):(?P<m>\d{2})):(?P<s>\d{2}))")
 
             with open(self.options.csvfile) as csvfile:
                 dialect = csv.Sniffer().sniff(csvfile.readline())
@@ -331,6 +332,7 @@ class Sundial(inkex.Effect):
                             continue
 
                         timestamp = time_col.group("timestamp")
+                        timestamp_min_only = time_col.group("timestamp_min_only")
                         
                     #for h in range(self.day_start, self.day_end + 1):
                         try:
@@ -371,9 +373,9 @@ class Sundial(inkex.Effect):
                         elif date > winter_date:
                             hours = hours_summer2
 
-                        hrs = hours.get(timestamp,[])
+                        hrs = hours.get(timestamp_min_only,[])
                         hrs.append((x,y))
-                        hours[timestamp] = hrs
+                        hours[timestamp_min_only] = hrs
 
                         anchor = 'start'
                         if date.month < 4:
@@ -391,6 +393,10 @@ class Sundial(inkex.Effect):
                             m = months.get(date.month,[])
                             m.append((x,y))
                             months[date.month] = m
+                            if timestamp.endswith(":00:00") or len(m) == 1:
+                                m = month_dots.get(date.month,[])
+                                m.append((x,y))
+                                month_dots[date.month] = m
                             
 
 
@@ -412,25 +418,23 @@ class Sundial(inkex.Effect):
                 self.new_path(parent, months[m], color, f"Month {m}")
                 coord = months[m][0]
                 self.new_text(parent, None, coord[0] + offset, coord[1], f"{calendar.month_name[m]}", anchor=anchor)
-                for p in months[m]:
+                for p in month_dots[m]:
                     self.new_circle(parent, p[0], p[1], color)
 
             if self.sundial_type != 'summer_to_winter_only':
                 for h in hours_summer1:
-                    if h.endswith("00:00"):
+                    if h.endswith(":00"):
                         color = '#FF0000'
                     else:
                         color = '#FFBEBE'
                     self.new_path(parent, hours_summer1[h], color, f"{h}h")
 
                     # only label full hours
-                    if not h.endswith("00:00"):
+                    if not h.endswith(":00"):
                         continue
 
                     coord = hours_summer1[h][-1]
                     self.new_circle(parent, coord[0], coord[1], color, fill=False)
-                    if coord[1] < self.offset_y:
-                        coord = (coord[0],coord[1] + txt_y_gap)
                     self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h}", anchor='start')
 
                     coord = hours_summer1[h][0]
@@ -440,7 +444,7 @@ class Sundial(inkex.Effect):
                     self.new_text(parent, None, coord[0] - txt_x_gap, coord[1], f"{h}", anchor='end')
 
                 for h in hours_summer2:
-                    if h.endswith("00:00"):
+                    if h.endswith(":00"):
                         color = '#FF0000'
                     else:
                         color = '#FFBEBE'
@@ -452,7 +456,7 @@ class Sundial(inkex.Effect):
 
             if self.sundial_type != 'winter_to_summer_only':
                 for h in hours_winter:
-                    if h.endswith("00:00"):
+                    if h.endswith(":00"):
                         color = '#000000'
                     else:
                         color = '#C6C6C6'
@@ -460,14 +464,12 @@ class Sundial(inkex.Effect):
                     self.new_path(parent, hours_winter[h], color, f"{h}")
 
                     # only label full hours
-                    if not h.endswith("00:00"):
+                    if not h.endswith(":00"):
                         continue
                     if self.sundial_type != 'both':
 
                         coord = hours_winter[h][0]
                         self.new_circle(parent, coord[0], coord[1], color, fill=False)
-                        if coord[1] < self.offset_y:
-                            coord = (coord[0],coord[1] + txt_y_gap)
                         self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h}", anchor='start')
 
                         coord = hours_winter[h][-1]

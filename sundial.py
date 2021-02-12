@@ -131,7 +131,7 @@ class Sundial(inkex.Effect):
         def new_text(self, parent, name, x,y, text, anchor="start", rotate=None, fontsize=None):
             if not fontsize:
                 # just some estimation
-                fontsize = self.length / 10
+                fontsize = self.fontsize
 
             style   = str(inkex.Style({
                     'font-size'    : str(fontsize),
@@ -197,6 +197,13 @@ class Sundial(inkex.Effect):
             self.offset_x = self.options.offset_x
             self.offset_y = self.options.offset_y
             self.bounding_box = self.options.bounding_box
+            # some rough estimation for the fontsize
+            self.fontsize = self.length / 10
+            self.fontsize_x_spacing = self.fontsize
+            self.fontsize_y_spacing = self.fontsize * 1.3
+            # just a shorter variable name
+            txt_x_gap = self.fontsize_x_spacing
+            txt_y_gap = self.fontsize_y_spacing
 
             parent = self.svg.get_current_layer()
             color = '#000000'
@@ -240,34 +247,35 @@ class Sundial(inkex.Effect):
                                    (x + d + x_15, y - d - y_15),
                                    (x + d + hgt, y)], color, close=False, dashed=True)
 
-            self.new_text(parent, None, x + d + x_15 - 3, y - d - y_15 - 7, f"Cut on dashed lines,", anchor='end')
-            self.new_text(parent, None, x + d + x_15 - 3, y - d - y_15 - 4, f"Bend on solid lines,", anchor='end')
-            self.new_text(parent, None, x + d + x_15 - 3, y - d - y_15 - 1, f"tape to numbers", anchor='end')
-            self.new_text(parent, None, x + d/2, y - d/2 + 3, f"1", anchor='start')
-            self.new_text(parent, None, x + d + x_15/2, y - d - y_15 / 2 + 3, f"1", anchor='start')
+            self.new_text(parent, None, x + d + x_15 - txt_x_gap, y - d - y_15 - 1 - 2 * txt_y_gap, f"Cut on dashed lines,", anchor='end')
+            self.new_text(parent, None, x + d + x_15 - txt_x_gap, y - d - y_15 - 1 - 1 * txt_y_gap, f"Bend on solid lines,", anchor='end')
+            self.new_text(parent, None, x + d + x_15 - txt_x_gap, y - d - y_15 - 1 - 0 * txt_y_gap, f"tape to numbers", anchor='end')
+            self.new_text(parent, None, x + d/2, y - d/2 + txt_x_gap, f"1", anchor='start')
+            self.new_text(parent, None, x + d + x_15/2, y - d - y_15 / 2 + txt_y_gap, f"1", anchor='start')
 
-            self.new_text(parent, None, x + d/2, y - d/2 - 2, f"2", anchor='end')
+            self.new_text(parent, None, x + d/2, y - d/2 - txt_y_gap, f"2", anchor='end')
             self.new_text(parent, None, x + d + x_15 + y_15 / 2 - 1, y - d - y_15 + x_15/2, f"2", anchor='end')
 
         
             if self.box_mode:
-                self.new_path(parent, [(x + d + x_15 + y_15, y - self.bounding_box + l),
+                x_right_end = x + d + x_15 + y_15 + txt_x_gap
+                self.new_path(parent, [(x_right_end, y - self.bounding_box + l),
                                        (x - self.bounding_box + l, y - self.bounding_box + l),
                                        (x - self.bounding_box + l, y + self.bounding_box - l),
-                                       (x + d + x_15 + y_15, y + self.bounding_box - l)], color, close=False)
-                self.new_text(parent, None, x + d + x_15 + y_15, y - self.bounding_box + l + 2, f"https://github.com/schuellerf/sundial", anchor='end', rotate=-90)
+                                       (x_right_end, y + self.bounding_box - l)], color, close=False)
+                self.new_text(parent, None, x_right_end, y - self.bounding_box + l + 2, f"https://github.com/schuellerf/sundial", anchor='end', rotate=-90)
 
                 self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
                                        (x - self.bounding_box, y - self.bounding_box + l)], color, close=False, dashed=True)
-                self.new_text(parent, None, x - self.bounding_box, y - self.bounding_box + l + 5, f"3", anchor='start')
+                self.new_text(parent, None, x - self.bounding_box + txt_x_gap, y - self.bounding_box + l + txt_y_gap, f"3", anchor='start')
 
                 self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
                                        (x - self.bounding_box, y + self.bounding_box - l)], color, close=False, dashed=True)
-                self.new_text(parent, None, x - self.bounding_box, y + self.bounding_box - l - 2, f"4", anchor='start')
+                self.new_text(parent, None, x - self.bounding_box + txt_x_gap, y + self.bounding_box - l - txt_y_gap, f"4", anchor='start')
 
                 self.new_path(parent, [(x - self.bounding_box + l, y - self.bounding_box + l),
                                        (x - self.bounding_box + l, y - self.bounding_box)], color, close=False, dashed=True)
-                self.new_text(parent, None, x - self.bounding_box + l + 2, y - self.bounding_box + 3, f"3", anchor='start')
+                self.new_text(parent, None, x - self.bounding_box + l + txt_x_gap, y - self.bounding_box + txt_y_gap, f"3", anchor='start')
 
                 self.new_path(parent, [(x - self.bounding_box + l, y + self.bounding_box - l),
                                        (x - self.bounding_box + l, y + self.bounding_box)], color, close=False, dashed=True)
@@ -283,8 +291,8 @@ class Sundial(inkex.Effect):
                 year = None
 
                 gps_coords = date_col.replace("coo: ","")
-                # SMELL: (self.length / 15) is just an esimation of the scaled distance to the line to print on
-                self.new_text(parent, None, x + d + (self.length / 15), y + d - (self.length / 10), f"{gps_coords}", anchor='start', rotate=-30)
+                # 1.4 as an approximation as the text is tilted
+                self.new_text(parent, None, x + d + txt_x_gap/1.4, y + d - txt_y_gap/1.4, f"{gps_coords}", anchor='start', rotate=-30)
                 for row in reader:
                     for h in range(self.day_start, self.day_end + 1):
                         try:
@@ -370,7 +378,7 @@ class Sundial(inkex.Effect):
                 for h in hours_summer1:
                     self.new_path(parent, hours_summer1[h], '#FF0000', f"{h}h")
                     coord = hours_summer1[h][-1]
-                    self.new_text(parent, None, coord[0] + 3, coord[1], f"{h:02d}:00", anchor='start')
+                    self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h:02d}:00", anchor='start')
                 for h in hours_summer2:
                     self.new_path(parent, hours_summer2[h], '#FF0000', f"{h}h")
                     #connect both
@@ -382,7 +390,7 @@ class Sundial(inkex.Effect):
                     self.new_path(parent, hours_winter[h], '#000000', f"{h}h")
                     coord = hours_winter[h][0]
                     if self.sundial_type != 'both':
-                        self.new_text(parent, None, coord[0] + 3, coord[1], f"{h:02d}:00", anchor='start')
+                        self.new_text(parent, None, coord[0] + txt_x_gap, coord[1], f"{h:02d}:00", anchor='start')
                 
 
 
